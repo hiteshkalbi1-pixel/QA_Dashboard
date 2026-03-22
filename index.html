@@ -475,12 +475,28 @@
 <div id="toast"></div>
 
 <script>
+// ── Auto-clean any previously mis-saved values ──
+(function() {
+  const k = localStorage.getItem('cfg_api_key');
+  if (k && (k.includes('apps.googleusercontent') || k.includes('84967290253') || k === 'YOUR_API_KEY_HERE')) {
+    localStorage.removeItem('cfg_api_key');
+  }
+  const s = localStorage.getItem('cfg_sheet_id');
+  if (s && (s.includes('/edit') || s.includes('gid='))) {
+    localStorage.removeItem('cfg_sheet_id');
+  }
+  const n = localStorage.getItem('cfg_sheet_name');
+  if (n && n === 'Sheet1') {
+    localStorage.removeItem('cfg_sheet_name');
+  }
+})();
+
 // ─────────────────────────────────────────────
-//  CONFIG  — fill these in or use the modal
+//  CONFIG  — hardcoded with your real values
 // ─────────────────────────────────────────────
 let CONFIG = {
   SHEET_ID:   localStorage.getItem('cfg_sheet_id')   || '1ZgbLLEy13GQLSKuxfEHKRbEa190kxwRc',
-  API_KEY:    localStorage.getItem('cfg_api_key')    || 'YOUR_API_KEY_HERE',
+  API_KEY:    localStorage.getItem('cfg_api_key')    || 'AIzaSyBkuwISqQBzNEns9j7E45gAobtaTyhNE1Y',
   SHEET_NAME: localStorage.getItem('cfg_sheet_name') || 'Banking_QA_Data',
   CLIENT_ID:  localStorage.getItem('cfg_client_id')  || '84967290253-m38n0pgga0s3l8h626bgkj21l87686r2.apps.googleusercontent.com',
 };
