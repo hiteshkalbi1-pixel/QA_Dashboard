@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QA Transaction Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root {
+      --bg:        #0c0f1a;
+      --bg2:       #131726;
+      --bg3:       #1a2035;
+      --border:    #252d45;
+      --accent:    #4f8ef7;
+      --accent2:   #7c3aed;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --card-glow: 0 0 0 1px var(--border), 0 4px 24px rgba(79,142,247,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 60% 40%, #1a2a4a 0%, var(--bg) 70%);
+    }
+    .login-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 52px 48px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+    }
+    .login-logo {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin: 0 auto 24px;
+      box-shadow: 0 0 30px rgba(79,142,247,0.3);
+    }
+    .login-box h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    .login-box p  { color: var(--muted); font-size: 0.9rem; margin-bottom: 36px; line-height: 1.6; }
+    .google-btn {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      background: #fff; color: #1a1a2e;
+      border: none; border-radius: 12px;
+      padding: 14px 28px; width: 100%;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .google-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,255,255,0.15); }
+    .google-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+
+    /* HEADER */
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .header-title { font-size: 1.05rem; font-weight: 600; }
+    .header-subtitle { font-size: 0.75rem; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .user-pill {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 100px; padding: 6px 14px 6px 6px;
+    }
+    .user-pill img { width: 28px; height: 28px; border-radius: 50%; }
+    .user-name { font-size: 0.82rem; font-weight: 500; }
+    .btn-sm {
+      padding: 7px 16px; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+      border: 1px solid var(--border);
+      background: var(--bg3); color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-primary {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: #3b7de8; border-color: #3b7de8; color: #fff; }
+
+    /* MAIN */
+    main { padding: 28px 32px; max-width: 1600px; margin: 0 auto; width: 100%; flex: 1; }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: var(--card-glow);
+      transition: border-color 0.2s;
+    }
+    .kpi-card:hover { border-color: var(--accent); }
+    .kpi-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .kpi-value { font-size: 2rem; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.red   { color: var(--red); }
+    .kpi-value.blue  { color: var(--accent); }
+    .kpi-value.yellow{ color: var(--yellow); }
+    .kpi-sub { font-size: 0.75rem; color: var(--muted); margin-top: 6px; }
+
+    /* FILTERS */
+    .filters-bar {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 22px;
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+      margin-bottom: 24px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
+    .filter-group label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .filter-group select,
+    .filter-group input {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); padding: 8px 12px;
+      font-size: 0.85rem; font-family: 'DM Sans', sans-serif;
+      outline: none; transition: border-color 0.15s;
+    }
+    .filter-group select:focus,
+    .filter-group input:focus { border-color: var(--accent); }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
+
+    /* TABLE SECTION */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+    }
+    .section-title { font-size: 1rem; font-weight: 600; }
+    .section-count { font-size: 0.8rem; color: var(--muted); }
+
+    .table-wrapper {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead th {
+      background: var(--bg3);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.7rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    thead th:hover { color: var(--accent); }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg3); }
+    tbody td { padding: 11px 16px; white-space: nowrap; color: var(--text); }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 100px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .badge.pass   { background: rgba(34,197,94,0.15);  color: var(--green); }
+    .badge.fail   { background: rgba(239,68,68,0.15);  color: var(--red); }
+    .badge.high   { background: rgba(239,68,68,0.15);  color: var(--red); }
+    .badge.medium { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .badge.low    { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .badge.critical{background: rgba(239,68,68,0.25); color: #ff6b6b; }
+
+    /* AMOUNT */
+    .amount { font-family: 'DM Mono', monospace; font-size: 0.8rem; }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; border-top: 1px solid var(--border);
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .page-btns { display: flex; gap: 6px; }
+    .page-btn {
+      padding: 5px 12px; border-radius: 7px;
+      border: 1px solid var(--border); background: var(--bg3);
+      color: var(--text); cursor: pointer; font-size: 0.8rem;
+      font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* LOADING */
+    .loading-state {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 20px; color: var(--muted); gap: 12px;
+    }
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+
+    /* CONFIG MODAL */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 999;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px; max-width: 500px; width: 90%;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 6px; }
+    .modal p { color: var(--muted); font-size: 0.85rem; margin-bottom: 24px; line-height: 1.6; }
+    .modal label { display: block; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .modal input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); padding: 11px 14px;
+      font-size: 0.88rem; font-family: 'DM Mono', monospace; outline: none;
+      margin-bottom: 16px; transition: border-color 0.15s;
+    }
+    .modal input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+    /* TOAST */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px;
+      font-size: 0.85rem; z-index: 9999;
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.3s; max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--green); }
+    #toast.error   { border-color: var(--red); }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      header { padding: 0 16px; }
+      main { padding: 16px; }
+      .filters-bar { flex-direction: column; }
+      .filter-actions { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">📊</div>
+    <h1>QA Transaction Dashboard</h1>
+    <p>Sign in with your Google account to access the Quality Assurance analytics dashboard powered by your Google Sheets data.</p>
+    <button class="google-btn" onclick="handleGoogleLogin()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="header-logo">📊</div>
+      <div>
+        <div class="header-title">QA Dashboard</div>
+        <div class="header-subtitle">Transaction Quality Analytics</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-sm btn-primary" onclick="loadData()">⟳ Refresh</button>
+      <button class="btn-sm" onclick="openConfig()">⚙ Config</button>
+      <div class="user-pill">
+        <img id="user-avatar" src="" alt=""/>
+        <span class="user-name" id="user-name">User</span>
+      </div>
+      <button class="btn-sm" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Transactions</div>
+        <div class="kpi-value blue" id="kpi-total">—</div>
+        <div class="kpi-sub">All records</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pass Rate</div>
+        <div class="kpi-value green" id="kpi-pass">—</div>
+        <div class="kpi-sub" id="kpi-pass-count">— passed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fail Rate</div>
+        <div class="kpi-value red" id="kpi-fail">—</div>
+        <div class="kpi-sub" id="kpi-fail-count">— failed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Critical Errors</div>
+        <div class="kpi-value yellow" id="kpi-critical">—</div>
+        <div class="kpi-sub">High + Critical severity</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Amount</div>
+        <div class="kpi-value blue" id="kpi-amount" style="font-size:1.4rem">—</div>
+        <div class="kpi-sub">Sum of all transactions</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">QA Associates</div>
+        <div class="kpi-value blue" id="kpi-associates">—</div>
+        <div class="kpi-sub">Unique reviewers</div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label>Pass / Fail</label>
+        <select id="f-pass-fail">
+          <option value="">All</option>
+          <option>Pass</option>
+          <option>Fail</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Severity</label>
+        <select id="f-severity">
+          <option value="">All</option>
+          <option>Low</option>
+          <option>Medium</option>
+          <option>High</option>
+          <option>Critical</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Region</label>
+        <select id="f-region"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>LOB</label>
+        <select id="f-lob"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Branch Code</label>
+        <select id="f-branch"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Transaction Type</label>
+        <select id="f-txn-type"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>QA Associate</label>
+        <select id="f-associate"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Search (ID / Account)</label>
+        <input type="text" id="f-search" placeholder="Search…"/>
+      </div>
+      <div class="filter-actions">
+        <button class="btn-sm btn-primary" onclick="applyFilters()">Apply</button>
+        <button class="btn-sm" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-header">
+      <span class="section-title">Transaction Records</span>
+      <span class="section-count" id="row-count">Loading…</span>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr id="thead-row"></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="loading-state" class="loading-state">
+          <div class="spinner"></div> Loading data from Google Sheets…
+        </div>
+        <div id="empty-state" class="empty-state" style="display:none">
+          <div class="icon">🔍</div>
+          <div>No records match your filters.</div>
+        </div>
+      </div>
+      <div class="pagination">
+        <span id="page-info">Page 1</span>
+        <div class="page-btns" id="page-btns"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ══ CONFIG MODAL ══ -->
+<div class="modal-overlay" id="config-modal">
+  <div class="modal">
+    <h2>⚙ Dashboard Configuration</h2>
+    <p>Enter your Google Sheets ID and API Key. Find the Sheet ID in the URL of your spreadsheet. Get an API Key from Google Cloud Console → Credentials.</p>
+    <label>Google Sheet ID</label>
+    <input id="cfg-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" />
+    <label>Google Sheets API Key</label>
+    <input id="cfg-api-key" placeholder="AIza…" />
+    <label>Sheet Name (tab name)</label>
+    <input id="cfg-sheet-name" placeholder="Sheet1" />
+    <label>Google OAuth Client ID</label>
+    <input id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+    <div class="modal-actions">
+      <button class="btn-sm" onclick="closeConfig()">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="saveConfig()">Save & Reload</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  CONFIG  — fill these in or use the modal
+// ─────────────────────────────────────────────
+let CONFIG = {
+  SHEET_ID:   localStorage.getItem('cfg_sheet_id')   || '1ZgbLLEy13GQLSKuxfEHKRbEa190kxwRc',
+  API_KEY:    localStorage.getItem('cfg_api_key')    || 'YOUR_API_KEY_HERE',
+  SHEET_NAME: localStorage.getItem('cfg_sheet_name') || 'Sheet1',
+  CLIENT_ID:  localStorage.getItem('cfg_client_id')  || '84967290253-m38n0pgga0s3l8h626bgkj21l87686r2.apps.googleusercontent.com',
+};
+
+// ─────────────────────────────────────────────
+//  COLUMNS (match your sheet header exactly)
+// ─────────────────────────────────────────────
+const COLUMNS = [
+  'Transaction_ID','Account_Number','customer_ID','Branch_Code','LOB',
+  'Transaction_Type','Transaction_Date','QA_Check_Date','QA_Check_Associate',
+  'Error_Type','Severity','Pass_Fail','Fail_Reason','Amount','Region'
+];
+
+const SEVERITY_ORDER = { Critical:0, High:1, Medium:2, Low:3, '':4 };
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let allData = [];
+let filtered = [];
+let currentPage = 1;
+const PAGE_SIZE = 25;
+let sortCol = null, sortAsc = true;
+let currentUser = null;
+
+// ─────────────────────────────────────────────
+//  GOOGLE LOGIN (popup flow)
+// ─────────────────────────────────────────────
+function handleGoogleLogin() {
+  if (CONFIG.CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    // Demo mode without real OAuth
+    showToast('⚠ Demo mode: configure Client ID for real auth', 'error');
+    fakeLogin();
+    return;
+  }
+  google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+    callback: async (resp) => {
+      if (resp.error) { showToast('Login failed: ' + resp.error, 'error'); return; }
+      const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + resp.access_token }
+      }).then(r => r.json());
+      loginSuccess({ name: info.name, picture: info.picture, email: info.email });
+    }
+  }).requestAccessToken();
+}
+
+function fakeLogin() {
+  loginSuccess({ name: 'Demo User', picture: '', email: 'demo@example.com' });
+}
+
+function loginSuccess(user) {
+  currentUser = user;
+  document.getElementById('user-name').textContent = user.name;
+  if (user.picture) document.getElementById('user-avatar').src = user.picture;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadData();
+}
+
+function signOut() {
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  allData = []; filtered = [];
+}
+
+// ─────────────────────────────────────────────
+//  DATA LOADING
+// ─────────────────────────────────────────────
+async function loadData() {
+  showLoading(true);
+  try {
+    const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A:O`);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'Sheets API error');
+    }
+    const json = await res.json();
+    const rows = json.values || [];
+    if (rows.length < 2) { showLoading(false); showToast('Sheet is empty', 'error'); return; }
+
+    const header = rows[0];
+    allData = rows.slice(1).map(row => {
+      const obj = {};
+      COLUMNS.forEach((col, i) => {
+        const idx = header.findIndex(h => h.trim().toLowerCase() === col.toLowerCase());
+        obj[col] = idx >= 0 ? (row[idx] || '') : '';
+      });
+      return obj;
+    });
+
+    buildFilters();
+    applyFilters();
+    showToast('✓ Data loaded — ' + allData.length + ' records', 'success');
+  } catch (e) {
+    showLoading(false);
+    showToast('Error: ' + e.message, 'error');
+    // Load sample data for demo
+    loadSampleData();
+  }
+}
+
+function loadSampleData() {
+  const types = ['Credit','Debit','Transfer','Payment','Refund'];
+  const regions = ['North','South','East','West','Central'];
+  const lobs = ['Retail','Corporate','SME','Private','Digital'];
+  const associates = ['Alice Johnson','Bob Smith','Carol White','David Lee','Eva Brown'];
+  const errors = ['Data Entry','Compliance','Documentation','Calculation','Missing Info'];
+  const severities = ['Low','Medium','High','Critical'];
+  const branches = ['BR001','BR002','BR003','BR004','BR005'];
+
+  allData = Array.from({length: 120}, (_, i) => {
+    const pf = Math.random() > 0.3 ? 'Pass' : 'Fail';
+    const sev = severities[Math.floor(Math.random()*severities.length)];
+    return {
+      Transaction_ID: 'TXN' + String(1000+i).padStart(6,'0'),
+      Account_Number: 'AC' + Math.floor(Math.random()*9000000+1000000),
+      customer_ID: 'CUST' + Math.floor(Math.random()*9000+1000),
+      Branch_Code: branches[Math.floor(Math.random()*branches.length)],
+      LOB: lobs[Math.floor(Math.random()*lobs.length)],
+      Transaction_Type: types[Math.floor(Math.random()*types.length)],
+      Transaction_Date: new Date(2024, Math.floor(Math.random()*12), Math.floor(Math.random()*28+1)).toLocaleDateString(),
+      QA_Check_Date: new Date(2025, Math.floor(Math.random()*6), Math.floor(Math.random()*28+1)).toLocaleDateString(),
+      QA_Check_Associate: associates[Math.floor(Math.random()*associates.length)],
+      Error_Type: pf === 'Fail' ? errors[Math.floor(Math.random()*errors.length)] : '',
+      Severity: pf === 'Fail' ? sev : '',
+      Pass_Fail: pf,
+      Fail_Reason: pf === 'Fail' ? 'Requires correction and resubmission' : '',
+      Amount: (Math.random()*99000+1000).toFixed(2),
+      Region: regions[Math.floor(Math.random()*regions.length)]
+    };
+  });
+
+  showToast('📋 Showing sample data (configure Sheet ID + API Key)', 'success');
+  buildFilters();
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+//  FILTERS
+// ─────────────────────────────────────────────
+function buildFilters() {
+  populateSelect('f-region',    [...new Set(allData.map(r => r.Region))].sort());
+  populateSelect('f-lob',       [...new Set(allData.map(r => r.LOB))].sort());
+  populateSelect('f-branch',    [...new Set(allData.map(r => r.Branch_Code))].sort());
+  populateSelect('f-txn-type',  [...new Set(allData.map(r => r.Transaction_Type))].sort());
+  populateSelect('f-associate', [...new Set(allData.map(r => r.QA_Check_Associate))].sort());
+}
+
+function populateSelect(id, options) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All</option>' +
+    options.filter(Boolean).map(o => `<option>${o}</option>`).join('');
+  if (options.includes(cur)) sel.value = cur;
+}
+
+function applyFilters() {
+  const pf  = document.getElementById('f-pass-fail').value;
+  const sev = document.getElementById('f-severity').value;
+  const reg = document.getElementById('f-region').value;
+  const lob = document.getElementById('f-lob').value;
+  const br  = document.getElementById('f-branch').value;
+  const tt  = document.getElementById('f-txn-type').value;
+  const qa  = document.getElementById('f-associate').value;
+  const q   = document.getElementById('f-search').value.toLowerCase();
+
+  filtered = allData.filter(r =>
+    (!pf  || r.Pass_Fail === pf) &&
+    (!sev || r.Severity === sev) &&
+    (!reg || r.Region === reg) &&
+    (!lob || r.LOB === lob) &&
+    (!br  || r.Branch_Code === br) &&
+    (!tt  || r.Transaction_Type === tt) &&
+    (!qa  || r.QA_Check_Associate === qa) &&
+    (!q   || r.Transaction_ID.toLowerCase().includes(q) || r.Account_Number.toLowerCase().includes(q) || r.customer_ID.toLowerCase().includes(q))
+  );
+
+  if (sortCol) {
+    filtered.sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (!isNaN(av) && !isNaN(bv)) { av = +av; bv = +bv; }
+      if (sortCol === 'Severity') { av = SEVERITY_ORDER[av]??99; bv = SEVERITY_ORDER[bv]??99; }
+      return (av < bv ? -1 : av > bv ? 1 : 0) * (sortAsc ? 1 : -1);
+    });
+  }
+
+  currentPage = 1;
+  updateKPIs();
+  renderTable();
+  showLoading(false);
+}
+
+function clearFilters() {
+  ['f-pass-fail','f-severity','f-region','f-lob','f-branch','f-txn-type','f-associate']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-search').value = '';
+  applyFilters();
+}
+
+// ─────────────────────────────────────────────
+//  KPIs
+// ─────────────────────────────────────────────
+function updateKPIs() {
+  const total   = filtered.length;
+  const passed  = filtered.filter(r => r.Pass_Fail?.toLowerCase() === 'pass').length;
+  const failed  = total - passed;
+  const critical= filtered.filter(r => ['High','Critical'].includes(r.Severity)).length;
+  const amount  = filtered.reduce((s, r) => s + (parseFloat(r.Amount)||0), 0);
+  const assocs  = new Set(filtered.map(r => r.QA_Check_Associate).filter(Boolean)).size;
+
+  document.getElementById('kpi-total').textContent      = total.toLocaleString();
+  document.getElementById('kpi-pass').textContent       = total ? ((passed/total)*100).toFixed(1)+'%' : '—';
+  document.getElementById('kpi-fail').textContent       = total ? ((failed/total)*100).toFixed(1)+'%' : '—';
+  document.getElementById('kpi-critical').textContent   = critical;
+  document.getElementById('kpi-amount').textContent     = amount ? '$'+amount.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+  document.getElementById('kpi-associates').textContent = assocs;
+  document.getElementById('kpi-pass-count').textContent = passed + ' passed';
+  document.getElementById('kpi-fail-count').textContent = failed + ' failed';
+}
+
+// ─────────────────────────────────────────────
+//  TABLE RENDER
+// ─────────────────────────────────────────────
+function renderTable() {
+  const thead = document.getElementById('thead-row');
+  if (!thead.children.length) {
+    thead.innerHTML = COLUMNS.map(col => {
+      const label = col.replace(/_/g,' ');
+      return `<th onclick="toggleSort('${col}')" title="Sort by ${label}">${label} <span class="sort-icon" id="si-${col}"></span></th>`;
+    }).join('');
+  }
+
+  const start = (currentPage-1)*PAGE_SIZE;
+  const page  = filtered.slice(start, start+PAGE_SIZE);
+  const tbody = document.getElementById('tbody');
+
+  document.getElementById('row-count').textContent =
+    `${filtered.length.toLocaleString()} record${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    document.getElementById('empty-state').style.display = 'block';
+    renderPagination();
+    return;
+  }
+  document.getElementById('empty-state').style.display = 'none';
+
+  tbody.innerHTML = page.map(r => `
+    <tr>
+      <td><code style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--accent)">${r.Transaction_ID}</code></td>
+      <td style="color:var(--muted)">${r.Account_Number}</td>
+      <td style="color:var(--muted)">${r.customer_ID}</td>
+      <td>${r.Branch_Code}</td>
+      <td>${r.LOB}</td>
+      <td>${r.Transaction_Type}</td>
+      <td style="color:var(--muted)">${r.Transaction_Date}</td>
+      <td style="color:var(--muted)">${r.QA_Check_Date}</td>
+      <td>${r.QA_Check_Associate}</td>
+      <td style="color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.Error_Type}">${r.Error_Type||'—'}</td>
+      <td>${severityBadge(r.Severity)}</td>
+      <td>${passBadge(r.Pass_Fail)}</td>
+      <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${r.Fail_Reason}">${r.Fail_Reason||'—'}</td>
+      <td class="amount">${r.Amount ? '$'+parseFloat(r.Amount).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'}</td>
+      <td>${r.Region}</td>
+    </tr>
+  `).join('');
+
+  renderPagination();
+  updateSortIcons();
+}
+
+function severityBadge(s) {
+  const cls = { Critical:'critical', High:'high', Medium:'medium', Low:'low' }[s] || '';
+  return s ? `<span class="badge ${cls}">${s}</span>` : '<span style="color:var(--muted)">—</span>';
+}
+function passBadge(s) {
+  const cls = s?.toLowerCase() === 'pass' ? 'pass' : s?.toLowerCase() === 'fail' ? 'fail' : '';
+  return s ? `<span class="badge ${cls}">${s}</span>` : '—';
+}
+
+// ─────────────────────────────────────────────
+//  SORT
+// ─────────────────────────────────────────────
+function toggleSort(col) {
+  if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+  applyFilters();
+}
+function updateSortIcons() {
+  document.querySelectorAll('.sort-icon').forEach(el => el.textContent = '');
+  if (sortCol) {
+    const el = document.getElementById('si-'+sortCol);
+    if (el) el.textContent = sortAsc ? ' ↑' : ' ↓';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  PAGINATION
+// ─────────────────────────────────────────────
+function renderPagination() {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  document.getElementById('page-info').textContent =
+    `Page ${currentPage} of ${total||1}  (${filtered.length} records)`;
+  const container = document.getElementById('page-btns');
+  container.innerHTML = '';
+
+  const prev = document.createElement('button');
+  prev.className = 'page-btn'; prev.textContent = '← Prev';
+  prev.disabled = currentPage === 1;
+  prev.onclick = () => { currentPage--; renderTable(); };
+  container.appendChild(prev);
+
+  const start = Math.max(1, currentPage-2);
+  const end   = Math.min(total, start+4);
+  for (let p = start; p <= end; p++) {
+    const btn = document.createElement('button');
+    btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+    btn.textContent = p;
+    btn.onclick = (pp => () => { currentPage = pp; renderTable(); })(p);
+    container.appendChild(btn);
+  }
+
+  const next = document.createElement('button');
+  next.className = 'page-btn'; next.textContent = 'Next →';
+  next.disabled = currentPage >= total;
+  next.onclick = () => { currentPage++; renderTable(); };
+  container.appendChild(next);
+}
+
+// ─────────────────────────────────────────────
+//  LOADING STATE
+// ─────────────────────────────────────────────
+function showLoading(show) {
+  document.getElementById('loading-state').style.display = show ? 'flex' : 'none';
+  document.getElementById('tbody').style.display = show ? 'none' : '';
+}
+
+// ─────────────────────────────────────────────
+//  CONFIG MODAL
+// ─────────────────────────────────────────────
+function openConfig() {
+  document.getElementById('cfg-sheet-id').value   = CONFIG.SHEET_ID;
+  document.getElementById('cfg-api-key').value    = CONFIG.API_KEY;
+  document.getElementById('cfg-sheet-name').value = CONFIG.SHEET_NAME;
+  document.getElementById('cfg-client-id').value  = CONFIG.CLIENT_ID;
+  document.getElementById('config-modal').classList.add('open');
+}
+function closeConfig() {
+  document.getElementById('config-modal').classList.remove('open');
+}
+function saveConfig() {
+  CONFIG.SHEET_ID   = document.getElementById('cfg-sheet-id').value.trim();
+  CONFIG.API_KEY    = document.getElementById('cfg-api-key').value.trim();
+  CONFIG.SHEET_NAME = document.getElementById('cfg-sheet-name').value.trim() || 'Sheet1';
+  CONFIG.CLIENT_ID  = document.getElementById('cfg-client-id').value.trim();
+  localStorage.setItem('cfg_sheet_id',   CONFIG.SHEET_ID);
+  localStorage.setItem('cfg_api_key',    CONFIG.API_KEY);
+  localStorage.setItem('cfg_sheet_name', CONFIG.SHEET_NAME);
+  localStorage.setItem('cfg_client_id',  CONFIG.CLIENT_ID);
+  closeConfig();
+  showToast('✓ Config saved', 'success');
+  loadData();
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 3500);
+}
+
+// Close modal on overlay click
+document.getElementById('config-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConfig();
+});
+</script>
+</body>
+</html>
