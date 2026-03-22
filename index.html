@@ -481,7 +481,7 @@
 let CONFIG = {
   SHEET_ID:   localStorage.getItem('cfg_sheet_id')   || '1ZgbLLEy13GQLSKuxfEHKRbEa190kxwRc',
   API_KEY:    localStorage.getItem('cfg_api_key')    || 'YOUR_API_KEY_HERE',
-  SHEET_NAME: localStorage.getItem('cfg_sheet_name') || 'Sheet1',
+  SHEET_NAME: localStorage.getItem('cfg_sheet_name') || 'Banking_QA_Data',
   CLIENT_ID:  localStorage.getItem('cfg_client_id')  || '84967290253-m38n0pgga0s3l8h626bgkj21l87686r2.apps.googleusercontent.com',
 };
 
@@ -554,23 +554,59 @@ function signOut() {
 // ─────────────────────────────────────────────
 async function loadData() {
   showLoading(true);
+
+  // Check config first
+  if (!CONFIG.API_KEY || CONFIG.API_KEY === 'YOUR_API_KEY_HERE') {
+    showLoading(false);
+    showToast('⚠ API Key missing! Click ⚙ Config to add it.', 'error');
+    loadSampleData();
+    return;
+  }
+  if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID === 'YOUR_SHEET_ID_HERE') {
+    showLoading(false);
+    showToast('⚠ Sheet ID missing! Click ⚙ Config to add it.', 'error');
+    loadSampleData();
+    return;
+  }
+
   try {
-    const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A:O`);
+    // Use A1:Z10000 to capture all columns and up to 10000 rows
+    const range = encodeURIComponent(`${CONFIG.SHEET_NAME}!A1:Z10000`);
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
     const res = await fetch(url);
+
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || 'Sheets API error');
+      const msg = err.error?.message || 'Sheets API error';
+      if (msg.includes('API key') || msg.includes('keyInvalid')) {
+        showToast('❌ Invalid API Key. Click ⚙ Config to fix.', 'error');
+      } else if (msg.includes('not found') || msg.includes('404')) {
+        showToast('❌ Sheet not found. Check Sheet ID in ⚙ Config.', 'error');
+      } else if (msg.includes('permission') || msg.includes('403')) {
+        showToast('❌ Sheet not public! Go to Google Sheet → Share → Anyone with link → Viewer', 'error');
+      } else {
+        showToast('❌ ' + msg, 'error');
+      }
+      loadSampleData();
+      return;
     }
+
     const json = await res.json();
     const rows = json.values || [];
-    if (rows.length < 2) { showLoading(false); showToast('Sheet is empty', 'error'); return; }
+
+    if (rows.length < 2) {
+      showLoading(false);
+      showToast('⚠ Sheet appears empty. Check Sheet Name tab in ⚙ Config.', 'error');
+      loadSampleData();
+      return;
+    }
 
     const header = rows[0];
-    allData = rows.slice(1).map(row => {
+    // Filter out completely empty rows
+    allData = rows.slice(1).filter(row => row && row.some(cell => String(cell).trim())).map(row => {
       const obj = {};
-      COLUMNS.forEach((col, i) => {
-        const idx = header.findIndex(h => h.trim().toLowerCase() === col.toLowerCase());
+      COLUMNS.forEach((col) => {
+        const idx = header.findIndex(h => String(h).trim().toLowerCase() === col.toLowerCase());
         obj[col] = idx >= 0 ? (row[idx] || '') : '';
       });
       return obj;
@@ -578,11 +614,10 @@ async function loadData() {
 
     buildFilters();
     applyFilters();
-    showToast('✓ Data loaded — ' + allData.length + ' records', 'success');
+    showToast('✅ Loaded ' + allData.length.toLocaleString() + ' real records!', 'success');
   } catch (e) {
     showLoading(false);
-    showToast('Error: ' + e.message, 'error');
-    // Load sample data for demo
+    showToast('❌ ' + e.message + ' — Check ⚙ Config', 'error');
     loadSampleData();
   }
 }
